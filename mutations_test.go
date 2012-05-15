@@ -9,15 +9,25 @@ type mockspecimen struct {
 }
 
 func (s *mockspecimen) Clone() specimens.Specimen {
-    return &(*s) // hopefully a shallow copy
+    clone := *s
+    return &clone
 }
 
-type mockmutation struct {
-    Used int
+func (s *mockspecimen) ToString() string {
+    return "A featureless specimen"
 }
 
-func (m *mockmutation) Mutate(specimen specimens.Specimen) {
-    m.Used++
+type mutationCounter struct {
+    used int
+    mutation func(specimen specimens.Specimen)
+}
+
+func mockmutation() *mutationCounter {
+    mock := mutationCounter{0, nil}
+    mock.mutation = func(specimen specimens.Specimen) {
+        mock.used++
+    }
+    return &mock
 }
 
 func assertInRange(t *testing.T, message string, expectedLow, expectedHigh, actual int) {
@@ -28,17 +38,17 @@ func assertInRange(t *testing.T, message string, expectedLow, expectedHigh, actu
 }
 
 func TestMutationRepository(t *testing.T) {
-    rand.Seed(12345)
+    rand.Seed(95873)
 
     repo := mutations.NewRepository()
 
-    mockmutations := []mockmutation{ mockmutation{}, mockmutation{}, mockmutation{}, mockmutation{}, mockmutation{} }
+    counters := []*mutationCounter{ mockmutation(), mockmutation(), mockmutation(), mockmutation(), mockmutation() }
 
-    repo.Register(&mockmutations[0], 0.3)
-    repo.Register(&mockmutations[1], 0.25)
-    repo.Register(&mockmutations[2], 0.2)
-    repo.Register(&mockmutations[3], 0.15)
-    repo.Register(&mockmutations[4], 0.1)
+    repo.Register(counters[0].mutation, 0.3)
+    repo.Register(counters[1].mutation, 0.25)
+    repo.Register(counters[2].mutation, 0.2)
+    repo.Register(counters[3].mutation, 0.15)
+    repo.Register(counters[4].mutation, 0.1)
 
     specimen := mockspecimen{}
 
@@ -46,11 +56,9 @@ func TestMutationRepository(t *testing.T) {
         repo.Mutate(&specimen)
     }
 
-    print(mockmutations[0].Used)
-
-    assertInRange(t, "Unexpected frequency", 2800, 3200, mockmutations[0].Used)
-    assertInRange(t, "Unexpected frequency", 2300, 2700, mockmutations[1].Used)
-    assertInRange(t, "Unexpected frequency", 1800, 2200, mockmutations[2].Used)
-    assertInRange(t, "Unexpected frequency", 1300, 1700, mockmutations[3].Used)
-    assertInRange(t, "Unexpected frequency",  800, 1200, mockmutations[4].Used)
+    assertInRange(t, "Unexpected frequency", 2800, 3200, counters[0].used)
+    assertInRange(t, "Unexpected frequency", 2300, 2700, counters[1].used)
+    assertInRange(t, "Unexpected frequency", 1800, 2200, counters[2].used)
+    assertInRange(t, "Unexpected frequency", 1300, 1700, counters[3].used)
+    assertInRange(t, "Unexpected frequency",  800, 1200, counters[4].used)
 }

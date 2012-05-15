@@ -6,9 +6,7 @@ import (
     "math/rand"
 )
 
-type Mutation interface {
-    Mutate(specimen specimens.Specimen)
-}
+type Mutation func(specimen specimens.Specimen)
 
 type MutationRepository interface {
     Register(mutation Mutation, chance float32)
@@ -64,7 +62,7 @@ func (r *repository) mutateOnce(specimen specimens.Specimen) {
     for e := r.mutations.Front(); e != nil; e = e.Next() {
         value := e.Value.(registeredMutation)
         if point <= value.chance {
-            value.mutation.Mutate(specimen)
+            value.mutation(specimen)
             return
         }
         point -= value.chance
