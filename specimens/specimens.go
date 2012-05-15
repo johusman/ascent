@@ -1,5 +1,5 @@
 package specimens
 
 type Specimen interface {
-    Clone() *Specimen
+    Clone() Specimen
 }

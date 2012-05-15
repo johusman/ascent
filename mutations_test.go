@@ -3,26 +3,33 @@ package ascent
 import "testing"
 import "ascent/specimens"
 import "ascent/mutations"
+import "math/rand"
 
 type mockspecimen struct {
+}
+
+func (s *mockspecimen) Clone() specimens.Specimen {
+    return &(*s) // hopefully a shallow copy
 }
 
 type mockmutation struct {
     Used int
 }
 
-func (m *mockmutation) Mutate(specimen *specimens.Specimen) {
+func (m *mockmutation) Mutate(specimen specimens.Specimen) {
     m.Used++
 }
 
-func assertInRange(t *testing.T, message string, expectedLow, expectedHigh, actual float32) {
+func assertInRange(t *testing.T, message string, expectedLow, expectedHigh, actual int) {
     if actual >= expectedLow && actual <= expectedHigh {
             return
     }
-    t.Errorf(message + ": expected range [%g, %g] but was %g", expectedLow, expectedHigh, actual)
+    t.Fatalf(message + ": expected range [%d, %d] but was %d", expectedLow, expectedHigh, actual)
 }
 
 func TestMutationRepository(t *testing.T) {
+    rand.Seed(12345)
+
     repo := mutations.NewRepository()
 
     mockmutations := []mockmutation{ mockmutation{}, mockmutation{}, mockmutation{}, mockmutation{}, mockmutation{} }
@@ -39,9 +46,11 @@ func TestMutationRepository(t *testing.T) {
         repo.Mutate(&specimen)
     }
 
-    t.assertInRange(t, "Unexpected frequency", 2500, 3500, mockmutations[0].Used)
-    t.assertInRange(t, "Unexpected frequency", 2000, 3000, mockmutations[1].Used)
-    t.assertInRange(t, "Unexpected frequency", 1500, 2500, mockmutations[2].Used)
-    t.assertInRange(t, "Unexpected frequency", 1000, 2000, mockmutations[3].Used)
-    t.assertInRange(t, "Unexpected frequency",  500, 1500, mockmutations[4].Used)
+    print(mockmutations[0].Used)
+
+    assertInRange(t, "Unexpected frequency", 2800, 3200, mockmutations[0].Used)
+    assertInRange(t, "Unexpected frequency", 2300, 2700, mockmutations[1].Used)
+    assertInRange(t, "Unexpected frequency", 1800, 2200, mockmutations[2].Used)
+    assertInRange(t, "Unexpected frequency", 1300, 1700, mockmutations[3].Used)
+    assertInRange(t, "Unexpected frequency",  800, 1200, mockmutations[4].Used)
 }
