@@ -1,9 +1,11 @@
 package ascent
 
-import "testing"
-import "ascent/specimens"
-import "ascent/mutations"
-import "math/rand"
+import (
+    "testing"
+    "ascent/specimens"
+    "ascent/mutations"
+    "math/rand"
+)
 
 type mockspecimen struct {
 }
