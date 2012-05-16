@@ -30,9 +30,9 @@ func TestPicksHighestScore(t *testing.T) {
         return &idspecimen{counter, this.clone}
     }}
 
-    engine.SetGenerationCallback(func(pool []specimens.Specimen) {
-        if (int(pool[0].(*idspecimen).id) != counter) {
-            t.Fatalf("Highest score did not win! Winner had score %d but counter is %d", pool[0].(*idspecimen).id, counter-1)
+    engine.SetGenerationCallback(func(winner specimens.Specimen) {
+        if (int(winner.(*idspecimen).id) != counter) {
+            t.Fatalf("Highest score did not win! Winner had score %d but counter is %d", winner.(*idspecimen).id, counter-1)
         }
     })
 
