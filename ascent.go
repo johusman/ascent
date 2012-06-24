@@ -7,52 +7,70 @@ import (
 
 type AscentEngine interface {
     Mutations() mutations.MutationRepository
-    SetGenerationCallback(func(specimens.Specimen))
-    Run(start specimens.Specimen, fitness func(specimens.Specimen) (float32, bool)) specimens.Specimen
+    SetGenerationCallback(func(specimens.Specimen)(bool))
+    Run(threads int, start specimens.Specimen, fitness func(specimens.Specimen) (float32)) specimens.Specimen
 }
 
 type engine struct {
     mutations mutations.MutationRepository
-    generationCallback func(specimens.Specimen)
+    generationCallback func(specimens.Specimen) (bool)
 }
 
 func New() AscentEngine {
-    return &engine{ mutations.NewRepository(), func(specimens.Specimen){} }
+    return &engine{ mutations.NewRepository(), func(specimens.Specimen) (bool) { return true } }
 }
 
 func (this *engine) Mutations() mutations.MutationRepository {
     return this.mutations
 }
 
-func (this *engine) SetGenerationCallback(callback func(specimens.Specimen)) {
+func (this *engine) SetGenerationCallback(callback func(specimens.Specimen) (bool)) {
     this.generationCallback = callback
 }
 
-func (this *engine) Run(start specimens.Specimen, fitness func(specimens.Specimen) (float32, bool)) specimens.Specimen {
+type rated struct {
+    specimen specimens.Specimen
+    score float32
+}
 
-    seed := start
+func (this *engine) Run(threads int, start specimens.Specimen, fitness func(specimens.Specimen) (float32)) specimens.Specimen {
+
+    perGeneration := 2 * 2 * 3 * 3 * 5 // Some nice divisors
+    perThread := perGeneration / threads
+
+    winner := rated{ start, fitness(start) }
 
     for true {
-        nextseed := seed
-        highscore, _ := fitness(seed)
+        winnerChan := make(chan rated)
+        for i := 0; i < threads; i++ {
+            go func() {
+                currentTop := winner
+                for i := 0; i < perThread; i++ {
+                    offspring := winner.specimen.Clone()
+                    this.mutations.Mutate(offspring)
+                    score := fitness(offspring)
 
-        for i := 0; i < 100; i++ {
-            offspring := seed.Clone()
-            this.mutations.Mutate(offspring)
-            score, stop := fitness(offspring)
+                    if score > currentTop.score {
+                        currentTop.specimen = offspring
+                        currentTop.score = score
+                    }
+                }
+                winnerChan <- currentTop
+            }()
+        }
 
-            if score > highscore {
-                nextseed = offspring
-                highscore = score
-            }
-
-            if stop {
-                return offspring
+        nextWinner := winner
+        for i := 0; i < threads; i++ {
+            subWinner := <-winnerChan
+            if subWinner.score > nextWinner.score {
+                nextWinner = subWinner
             }
         }
 
-        seed = nextseed
-        this.generationCallback(seed)
+        winner = nextWinner
+        if !this.generationCallback(winner.specimen) {
+            return winner.specimen
+        }
     }
 
     return nil
